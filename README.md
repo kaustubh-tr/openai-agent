@@ -4,7 +4,7 @@ A lightweight, flexible Python framework for building custom OpenAI agents (Resp
 
 ## Features
 
-- **Custom Agent Loop**: Full control over the chat-completion loop.
+- **Custom Agent Execution**: Complete control over the agent execution loop, supporting both synchronous and streaming responses.
 - **Tool Support**: Easy registration and execution of Python functions as tools.
 - **Type Safety**: Strong typing for tool arguments with automatic coercion and validation.
 - **Prompt Templates**: Structured way to build system, user, and assistant messages.
@@ -33,7 +33,7 @@ pip install -e .[dev]
 
 ## Usage
 
-### Basic Example
+### Basic Example (Synchronous)
 
 ```python
 from openai_agent import Agent, Tool, Arg
@@ -62,7 +62,39 @@ response = agent.invoke("What's the weather in Paris?")
 print(response)
 ```
 
-See [examples/basic_agent.py](examples/basic_agent.py) for a complete runnable example.
+### Streaming Example
+
+The agent supports streaming responses with event filtering.
+
+```python
+from openai_agent import Agent, Tool, Arg, StreamEventType, EventPhase
+
+# ... (Tool definition same as above) ...
+
+agent = Agent(
+    model="gpt-4o",
+    system_prompt="You are a helpful assistant."
+)
+agent.add_tool(weather_tool)
+
+print("Agent: ", end="", flush=True)
+
+# Stream returns a generator of StreamEvent objects
+# Set include_internal_events=True to receive raw OpenAI API events in the `raw_event` attribute of each StreamEvent
+for event in agent.stream("What's the weather in Tokyo?", include_internal_events=False):
+    
+    # Handle text content updates
+    if event.type == StreamEventType.TEXT and event.phase == EventPhase.DELTA:
+        print(event.text, end="", flush=True)
+        
+    # Handle tool usage (optional)
+    elif event.type == StreamEventType.TOOL_CALL and event.phase == EventPhase.FINAL:
+        print(f"\n[Tool used: {event.tool_name}]", end="\nAgent: ", flush=True)
+        
+print()
+```
+
+See [examples/](examples/) for complete runnable examples.
 
 ## Testing
 
