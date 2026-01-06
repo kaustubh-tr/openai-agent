@@ -8,7 +8,7 @@ class Arg:
     def __init__(
         self,
         name: str,
-        type_: Type,
+        arg_type: Type,
         description: str,
         enum: Optional[List[Any]] = None,
     ):
@@ -16,12 +16,12 @@ class Arg:
         Initialize an Arg.
         Args:
             name (str): The name of the argument.
-            type_ (Type): The Python type of the argument (e.g., str, int).
+            arg_type (Type): The Python type of the argument (e.g., str, int).
             description (str): A description of the argument.
             enum (Optional[List[Any]]): A list of allowed values for the argument.
         """
         self.name = name
-        self.type_ = type_
+        self.type_ = arg_type
         self.description = description
         self.enum = enum
 

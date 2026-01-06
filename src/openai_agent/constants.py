@@ -9,7 +9,7 @@ class Role(str, Enum):
 class ContentType(str, Enum):
     INPUT_TEXT = "input_text"
     OUTPUT_TEXT = "output_text"
-    MESSAGE = "message"
+    MESSAGE = "message"  # NOTE: used only for incoming API responses; not valid for PromptMessage construction
     FUNCTION_CALL = "function_call"
     FUNCTION_CALL_OUTPUT = "function_call_output"
 

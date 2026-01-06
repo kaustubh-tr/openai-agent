@@ -4,7 +4,7 @@ import os
 # Add the project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.openai_agent import Agent, Tool, Arg, StreamEventType, EventPhase, ProcessStatus, StreamStatus
+from src.openai_agent import Agent, Tool, Arg, StreamEventType, EventPhase
 
 def get_weather(location: str, unit: str = "celsius") -> str:
     """

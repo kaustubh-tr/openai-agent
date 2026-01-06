@@ -25,7 +25,7 @@ class Agent:
         Args:
             model (str): The OpenAI model identifier (e.g., "gpt-4o").
             system_prompt (Optional[str]): The system instructions for the agent.
-            parallel_tool_calls (bool): Whether to allow parallel tool calls. Defaults to True.
+            parallel_tool_calls (Optional[bool]): Whether to allow parallel tool calls. Defaults to None (uses the OpenAI API's default behavior).
             max_iterations (int): Maximum number of agent loop iterations. Defaults to 10.
             **kwargs: Additional arguments passed to the OpenAI client.
         """
@@ -63,12 +63,12 @@ class Agent:
         """
         params = {
             "model": self.model,
-            "temperature": self.temperature,
             "input": messages,
-            "parallel_tool_calls": self.parallel_tool_calls,
             "stream": stream,
             **self.model_kwargs,
         }
+        if self.temperature is not None:
+            params["temperature"] = self.temperature
         if self.parallel_tool_calls is not None:
             params["parallel_tool_calls"] = self.parallel_tool_calls
         if self.tools:
@@ -116,7 +116,7 @@ class Agent:
             if self.system_prompt:
                 template.system(self.system_prompt)
 
-        # 2. Add the user message using
+        # 2. Add the user message using template.user()
         template.user(user_input)
         return template
 
@@ -177,7 +177,8 @@ class Agent:
                     final_output = "".join(text_parts)
 
             # If we processed tool calls, we loop again to get the next response.
-            if tool_called: continue
+            if tool_called:
+                continue
 
             # If we didn't process tool calls, and we have a final output, we return it.
             if final_output is not None:

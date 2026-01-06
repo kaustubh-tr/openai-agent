@@ -23,7 +23,7 @@ class PromptTemplate:
         Args:
             message (PromptMessage): The message to add.
         Returns:
-            Self: The current instance, allowing method chaining.
+            PromptTemplate: The current instance, allowing method chaining.
         Raises:
             TypeError: If `message` is not an instance of PromptMessage.
         """
@@ -38,7 +38,7 @@ class PromptTemplate:
         Args:
             messages (Iterable[PromptMessage]): The messages to add.
         Returns:
-            Self: The current instance, allowing method chaining.
+            PromptTemplate: The current instance, allowing method chaining.
         """
         for message in messages:
             self.add_message(message)
@@ -50,7 +50,7 @@ class PromptTemplate:
         Args:
             text (str): The system message text.
         Returns:
-            Self: The current instance, allowing method chaining.
+            PromptTemplate: The current instance, allowing method chaining.
         """
         return self.add_message(
             PromptMessage(
@@ -66,7 +66,7 @@ class PromptTemplate:
         Args:
             text (str): The user message text.
         Returns:
-            Self: The current instance, allowing method chaining.
+            PromptTemplate: The current instance, allowing method chaining.
         """
         return self.add_message(
             PromptMessage(
@@ -82,7 +82,7 @@ class PromptTemplate:
         Args:
             text (str): The assistant message text.
         Returns:
-            Self: The current instance, allowing method chaining.
+            PromptTemplate: The current instance, allowing method chaining.
         """
         return self.add_message(
             PromptMessage(
@@ -106,7 +106,7 @@ class PromptTemplate:
             arguments (str): The arguments passed to the tool (as a JSON string).
             call_id (str): The unique ID of the tool call.
         Returns:
-            Self: The current instance, allowing method chaining.
+            PromptTemplate: The current instance, allowing method chaining.
         """
         return self.add_message(
             PromptMessage(
@@ -129,7 +129,7 @@ class PromptTemplate:
             call_id (str): The ID of the tool call this output corresponds to.
             output (str): The output of the tool execution.
         Returns:
-            Self: The current instance, allowing method chaining.
+            PromptTemplate: The current instance, allowing method chaining.
         """
         return self.add_message(
             PromptMessage(
@@ -147,7 +147,7 @@ class PromptTemplate:
             PromptTemplate: A new PromptTemplate instance with the same messages.
         """
         new = PromptTemplate()
-        new.messages = List(self.messages)
+        new.messages = list(self.messages)
         return new
     
     def to_openai_input(self) -> List[Dict[str, Any]]:
