@@ -63,5 +63,103 @@ class TestAgent(unittest.TestCase):
         response = "".join(chunks)
         self.assertIn("Hello world", response)
 
+    def test_stream_with_tool_call(self):
+        """Test streaming with tool calls"""
+        from src.openai_agent.constants import StreamEventType, EventPhase, ProcessStatus
+        
+        # Setup tool
+        def get_info(topic: str) -> str:
+            return f"Information about {topic}"
+        
+        tool = Tool(
+            name="get_info", 
+            description="Get information about a topic", 
+            args=[Arg("topic", str, "The topic to get information about")], 
+            func=get_info
+        )
+        
+        agent = Agent(model="gpt-4o", system_prompt="You are a helpful assistant. Use get_info tool when asked for information.")
+        agent.add_tool(tool)
+        
+        # Track events
+        tool_call_events = []
+        lifecycle_events = []
+        text_chunks = []
+        
+        for event in agent.stream("Get information about Python and tell me about it"):
+            if event.type == StreamEventType.TOOL_CALL:
+                tool_call_events.append(event)
+            elif event.type == StreamEventType.LIFECYCLE:
+                lifecycle_events.append(event)
+            elif event.type == StreamEventType.TEXT and event.phase == EventPhase.DELTA:
+                text_chunks.append(event.text)
+        
+        # Verify tool calls were made
+        self.assertGreater(len(tool_call_events), 0, "Should have at least one tool call event")
+        
+        # Verify lifecycle events
+        self.assertGreater(len(lifecycle_events), 0, "Should have lifecycle events")
+        started_events = [e for e in lifecycle_events if e.process_status == ProcessStatus.STARTED]
+        completed_events = [e for e in lifecycle_events if e.process_status == ProcessStatus.COMPLETED]
+        self.assertGreater(len(started_events), 0, "Should have at least one started lifecycle event")
+        self.assertGreater(len(completed_events), 0, "Should have at least one completed lifecycle event")
+        
+        # Verify tool call phases
+        tool_call_phases = [e.phase for e in tool_call_events]
+        self.assertIn(EventPhase.FINAL, tool_call_phases, "Should have final tool call phase")
+        
+        # Verify final response contains tool output
+        response = "".join(text_chunks)
+        self.assertIn("Python", response)
+
+    def test_stream_lifecycle_events(self):
+        """Test that lifecycle events are emitted correctly"""
+        from src.openai_agent.constants import StreamEventType, ProcessStatus
+        
+        agent = Agent(model="gpt-4o", system_prompt="You are a helpful assistant.")
+        
+        lifecycle_events = []
+        for event in agent.stream("Say hello"):
+            if event.type == StreamEventType.LIFECYCLE:
+                lifecycle_events.append(event)
+        
+        # Should have started and completed events
+        self.assertGreater(len(lifecycle_events), 0, "Should have lifecycle events")
+        
+        statuses = [e.process_status for e in lifecycle_events]
+        self.assertIn(ProcessStatus.STARTED, statuses, "Should have STARTED status")
+        self.assertIn(ProcessStatus.COMPLETED, statuses, "Should have COMPLETED status")
+        
+        # Verify response_id is present
+        for event in lifecycle_events:
+            self.assertIsNotNone(event.response_id, "Lifecycle events should have response_id")
+
+    def test_stream_internal_events(self):
+        """Test that internal events are emitted when include_internal_events=True"""
+        from src.openai_agent.constants import StreamEventType
+        
+        agent = Agent(model="gpt-4o", system_prompt="You are a helpful assistant.")
+        
+        internal_events = []
+        for event in agent.stream("Say hi", include_internal_events=True):
+            if event.type == StreamEventType.INTERNAL:
+                internal_events.append(event)
+        
+        # Should have internal events when flag is True
+        self.assertGreater(len(internal_events), 0, "Should have internal events when include_internal_events=True")
+        
+        # Verify raw_event is present
+        for event in internal_events:
+            self.assertIsNotNone(event.raw_event, "Internal events should have raw_event")
+
+    def test_stream_empty_input(self):
+        """Test that streaming with empty input raises ValueError"""
+        agent = Agent(model="gpt-4o", system_prompt="You are a helpful assistant.")
+        
+        with self.assertRaises(ValueError) as context:
+            list(agent.stream(""))
+        
+        self.assertIn("cannot be empty", str(context.exception))
+
 if __name__ == "__main__":
     unittest.main()
