@@ -53,5 +53,15 @@ class TestAgent(unittest.TestCase):
         response = agent.invoke("Please use the echo tool to say 'hello'")
         self.assertIn("Echo: hello", response)
 
+    def test_stream_simple_response(self):
+        from src.openai_agent.constants import StreamEventType, EventPhase
+        agent = Agent(model="gpt-4o", system_prompt="You are a helpful assistant.")
+        chunks = []
+        for event in agent.stream("Say 'Hello world' and nothing else."):
+            if event.type == StreamEventType.TEXT and event.phase == EventPhase.DELTA:
+                chunks.append(event.text)
+        response = "".join(chunks)
+        self.assertIn("Hello world", response)
+
 if __name__ == "__main__":
     unittest.main()
