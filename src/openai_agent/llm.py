@@ -107,8 +107,16 @@ class ChatOpenAI:
         )
         if current_tools:
             params["tools"] = current_tools
-            params["tool_choice"] = tool_choice or self._tool_choice
-            params["parallel_tool_calls"] = parallel_tool_calls or self._parallel_tool_calls
+            # Resolve tool_choice: per-call argument overrides instance default when not None
+            resolved_tool_choice = self._tool_choice
+            if tool_choice is not None:
+                resolved_tool_choice = tool_choice
+            params["tool_choice"] = resolved_tool_choice
+            # Resolve parallel_tool_calls: per-call argument overrides instance default when not None
+            resolved_parallel_tool_calls = self._parallel_tool_calls
+            if parallel_tool_calls is not None:
+                resolved_parallel_tool_calls = parallel_tool_calls
+            params["parallel_tool_calls"] = resolved_parallel_tool_calls
             
         return self.client.responses.create(**params)
         
@@ -157,6 +165,23 @@ class ChatOpenAI:
                     phase=EventPhase.NONE,
                     raw_event=event,
                 )
+
+            # Tool call created
+            if event.type == "response.output_item.added":
+                item = event.item
+                if item.type == "function_call":
+                    tool_calls[item.id] = {
+                        "call_id": item.call_id,
+                        "name": item.name,
+                        "arguments": "",
+                    }
+                    yield ResponseStreamEvent(
+                        type=StreamEventType.TOOL_CALL,
+                        phase=EventPhase.NONE,
+                        tool_name=item.name,
+                        call_id=item.call_id,
+                        raw_event=event,
+                    )
 
             # Tool arguments streaming
             elif event.type == "response.function_call_arguments.delta":
