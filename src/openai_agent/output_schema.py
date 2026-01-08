@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from .constants import StreamEventType, EventPhase, RunStatus, StreamStatus
 
 
@@ -10,7 +10,7 @@ class Response:
     Used in Agent.invoke() method.
     """
     output: Optional[str] = None
-    tool_calls: Optional[Dict[str, Dict[str, Any]]] = None
+    tool_calls: Optional[List[Dict[str, Any]]] = None
     usage: Optional[Any] = None
     status: Optional[str] = None
     raw_response: Optional[Any] = None
