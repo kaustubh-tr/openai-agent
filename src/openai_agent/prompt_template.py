@@ -1,6 +1,6 @@
 from __future__ import annotations
-from .prompt_message import PromptMessage
 from typing import Iterable, List, Dict, Any
+from .prompt_message import PromptMessage
 from .constants import Role, ContentType
 
 
