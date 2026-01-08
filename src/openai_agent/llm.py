@@ -107,44 +107,24 @@ class ChatOpenAI:
         )
         if current_tools:
             params["tools"] = current_tools
-            # Resolve tool_choice: per-call argument overrides instance default when not None
-            resolved_tool_choice = self._tool_choice
-            if tool_choice is not None:
-                resolved_tool_choice = tool_choice
-            params["tool_choice"] = resolved_tool_choice
-            # Resolve parallel_tool_calls: per-call argument overrides instance default when not None
-            resolved_parallel_tool_calls = self._parallel_tool_calls
-            if parallel_tool_calls is not None:
-                resolved_parallel_tool_calls = parallel_tool_calls
-            params["parallel_tool_calls"] = resolved_parallel_tool_calls
+            params["tool_choice"] = tool_choice or self._tool_choice
+            params["parallel_tool_calls"] = (
+                parallel_tool_calls
+                if parallel_tool_calls is not None
+                else self._parallel_tool_calls
+            )
             
         return self.client.responses.create(**params)
         
-    def invoke(
-        self,
-        messages: List[Dict[str, Any]],
-        *,
-        tools: Optional[List[Dict[str, Any]]] = None,
-        tool_choice: Optional[str] = None,
-        parallel_tool_calls: Optional[bool] = None,
-    ) -> Response:
+    def invoke(self, messages: List[Dict[str, Any]]) -> Response:
         """
         Synchronously call the model.
         Args:
             messages: List of messages.
-            tools: Optional list of tool definitions (overrides instance tools).
-            tool_choice: Optional tool choice strategy (overrides instance setting).
-            parallel_tool_calls: Optional parallel tool calls setting (overrides instance setting).
         Returns:
             Response: The OpenAI API response wrapped in Response.
         """
-        response = self._chat(
-            messages=messages,
-            stream=False,
-            tools=tools,
-            tool_choice=tool_choice,
-            parallel_tool_calls=parallel_tool_calls,
-        )
+        response = self._chat(messages=messages, stream=False)
         output_text = extract_output_text(response)
         tool_calls = extract_tool_calls(response)
         usage_dict = extract_usage_dict(response)
@@ -161,29 +141,17 @@ class ChatOpenAI:
         self,
         *,
         messages: List[Dict[str, Any]],
-        include_internal_events: bool = False,
-        tools: Optional[List[Dict[str, Any]]] = None,
-        tool_choice: Optional[str] = None,
-        parallel_tool_calls: Optional[bool] = None,
+        include_internal_events: bool = False
     ) -> Generator[ResponseStreamEvent, None, None]:
         """
         Stream the model response.
         Args:
             messages: List of messages.
             include_internal_events: Whether to emit raw internal events.
-            tools: Optional list of tool definitions (overrides instance tools).
-            tool_choice: Optional tool choice strategy (overrides instance setting).
-            parallel_tool_calls: Optional parallel tool calls setting (overrides instance setting).
         Yields:
             ResponseStreamEvent: Streaming events.
         """
-        response_stream = self._chat(
-            messages=messages,
-            stream=True,
-            tools=tools,
-            tool_choice=tool_choice,
-            parallel_tool_calls=parallel_tool_calls,
-        )
+        response_stream = self._chat(messages=messages, stream=True)
         tool_calls: Dict[str, Dict[str, Any]] = {}
 
         for event in response_stream:

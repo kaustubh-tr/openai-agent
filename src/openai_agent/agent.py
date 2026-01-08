@@ -125,13 +125,13 @@ class Agent:
         prompt = self._build_initial_prompt(user_input, prompt_template)
 
         for _ in range(self.max_iterations):
-            response_obj = self.llm.invoke(
+            response = self.llm._chat(
                 messages=prompt.to_openai_input(),
+                stream=False,
                 tools=self._convert_to_openai_tools() if self.tools else None,
                 tool_choice=self.tool_choice,
                 parallel_tool_calls=self.parallel_tool_calls,
             )
-            response = response_obj.raw_response
             tool_calls = []
             output_text = None
 
@@ -200,8 +200,9 @@ class Agent:
         prompt = self._build_initial_prompt(user_input, prompt_template)
         
         for _ in range(self.max_iterations):
-            response_stream = self.llm.stream(
+            response_stream = self.llm._chat(
                 messages=prompt.to_openai_input(),
+                stream=True,
                 tools=self._convert_to_openai_tools() if self.tools else None,
                 tool_choice=self.tool_choice,
                 parallel_tool_calls=self.parallel_tool_calls,
