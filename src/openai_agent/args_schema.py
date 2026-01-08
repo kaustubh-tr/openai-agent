@@ -1,27 +1,28 @@
 from typing import Any, List, Optional, Type, Dict
 
 
-class Arg:
+class ArgsSchema:
     """
     Represents an argument for a tool.
     """
     def __init__(
         self,
+        *,
         name: str,
-        arg_type: Type,
+        type: Type,
         description: str,
         enum: Optional[List[Any]] = None,
     ):
         """
-        Initialize an Arg.
+        Initialize an ArgsSchema.
         Args:
             name (str): The name of the argument.
-            arg_type (Type): The Python type of the argument (e.g., str, int).
+            type (Type): The Python type of the argument (e.g., str, int).
             description (str): A description of the argument.
             enum (Optional[List[Any]]): A list of allowed values for the argument.
         """
         self.name = name
-        self.type_ = arg_type
+        self.type_ = type
         self.description = description
         self.enum = enum
 
