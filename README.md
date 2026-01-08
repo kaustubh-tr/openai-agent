@@ -36,7 +36,7 @@ pip install -e .[dev]
 ### Basic Example (Synchronous)
 
 ```python
-from openai_agent import Agent, Tool, Arg
+from openai_agent import Agent, ChatOpenAI, Tool, ArgsSchema
 
 # 1. Define a function
 def get_weather(location: str) -> str:
@@ -47,19 +47,23 @@ weather_tool = Tool(
     name="get_weather",
     description="Get weather info",
     func=get_weather,
-    args=[Arg("location", str, "City name")]
+    args_schema=[ArgsSchema(name="location", type=str, description="City name")]
 )
 
-# 3. Initialize Agent
+# 3. Initialize LLM
+llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
+
+# 4. Initialize Agent
 agent = Agent(
-    model="gpt-4o",
+    llm=llm,
     system_prompt="You are a helpful assistant."
 )
 agent.add_tool(weather_tool)
 
-# 4. Run
-response = agent.invoke("What's the weather in Paris?")
-print(response)
+# 5. Run
+# Returns a Response object
+response = agent.invoke(user_input="What's the weather in Paris?")
+print(response.output)
 ```
 
 ### Streaming Example
@@ -67,21 +71,29 @@ print(response)
 The agent supports streaming responses with event filtering.
 
 ```python
-from openai_agent import Agent, Tool, Arg, StreamEventType, EventPhase
+from openai_agent import Agent, ChatOpenAI, Tool, ArgsSchema, StreamEventType, EventPhase
 
 # ... (Tool definition same as above) ...
+weather_tool = Tool(
+    name="get_weather",
+    description="Get weather info",
+    func=get_weather,
+    args_schema=[ArgsSchema(name="location", type=str, description="City name")]
+)
+
+llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
 
 agent = Agent(
-    model="gpt-4o",
+    llm=llm,
     system_prompt="You are a helpful assistant."
 )
 agent.add_tool(weather_tool)
 
 print("Agent: ", end="", flush=True)
 
-# Stream returns a generator of StreamEvent objects
-# Set include_internal_events=True to receive raw OpenAI API events in the `raw_event` attribute of each StreamEvent
-for event in agent.stream("What's the weather in Tokyo?", include_internal_events=False):
+# Stream returns a generator of ResponseStreamEvent objects
+# Set include_internal_events=True to receive all OpenAI API events in the `raw_event` attribute of each ResponseStreamEvent
+for event in agent.stream(user_input="What's the weather in Tokyo?", include_internal_events=False):
     
     # Handle text content updates
     if event.type == StreamEventType.TEXT and event.phase == EventPhase.DELTA:
@@ -93,6 +105,48 @@ for event in agent.stream("What's the weather in Tokyo?", include_internal_event
         
 print()
 ```
+
+### Using ChatOpenAI Directly
+
+You can also use the `ChatOpenAI` class directly if you don't need the agent loop (e.g., for simple, one-off LLM calls).
+
+```python
+from openai_agent import ChatOpenAI
+
+llm = ChatOpenAI(model="gpt-4o", temperature=0)
+
+messages = [
+    {"role": "system", "content": "You are a helpful assistant."},
+    {"role": "user", "content": "Tell me a joke."}
+]
+
+# Synchronous call
+# Returns a Response object containing output, usage, tool_calls etc.
+response = llm.invoke(messages)
+print(response.output)
+
+# Or streaming call
+# Returns generator of ResponseStreamEvent
+stream = llm.stream(messages=messages)
+for event in stream:
+    # ... handle events ...
+    pass
+```
+
+## Key Classes
+
+### Response
+The unified output object for synchronous calls (`agent.invoke`, `llm.invoke`).
+- `output` (str): The text response.
+- `tool_calls` (List[Dict]): List of tool calls made.
+- `usage` (Dict): Token usage statistics.
+
+### ResponseStreamEvent
+The unified event object for streaming calls (`agent.stream`, `llm.stream`).
+- `type` (StreamEventType): The type of event (TEXT, TOOL_CALL, LIFECYCLE, ERROR).
+- `phase` (EventPhase): The phase of the event (DELTA, FINAL).
+- `text` (str): Text content (for text events).
+- `usage` (Dict): Usage stats (on lifecycle events).
 
 See [examples/](examples/) for complete runnable examples.
 
