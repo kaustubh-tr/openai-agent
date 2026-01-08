@@ -23,7 +23,7 @@ def main():
     print("Sending request...")
     try:
         response = llm.invoke(messages)
-        # response is now an Response object
+        # response is now a Response object
         print(f"Response: {response.output}")
         # print(f"Usage: {response.usage}")
     except Exception as e:

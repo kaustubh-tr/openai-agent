@@ -6,7 +6,7 @@ from .constants import StreamEventType, EventPhase, RunStatus, StreamStatus
 @dataclass(frozen=True)
 class Response:
     """
-    Final result returned by OpenAI Agent.
+    Final result returned by the OpenAI Agent.
     Used in Agent.invoke() method.
     """
     output: Optional[str] = None
@@ -19,8 +19,8 @@ class Response:
 @dataclass(frozen=True)
 class ResponseStreamEvent:
     """
-    Represents a streaming event from the OpenAI Agent.
-    Used in Agent.stream() method.
+    Represents a streaming event from the agent or LLM.
+    Used for streaming responses from Agent.stream() and ChatOpenAI.stream().
     """
     # Classification
     type: StreamEventType

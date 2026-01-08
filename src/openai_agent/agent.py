@@ -17,7 +17,7 @@ class Agent:
         *,
         llm: ChatOpenAI,
         system_prompt: Optional[str] = None,
-        tool_choice: str = "auto", # "auto", "none", "required
+        tool_choice: str = "auto", # "auto", "none", "required"
         parallel_tool_calls: bool = True,
         max_iterations: int = 10,
     ) -> None:
@@ -26,7 +26,7 @@ class Agent:
         Args:
             llm (ChatOpenAI): The OpenAI language model instance to use.
             system_prompt (Optional[str]): The system instructions for the agent.
-            tool_choice (Optional[str]): Tool choice strategy: "auto", "none", "required".
+            tool_choice (str): Tool choice strategy: "auto", "none", "required".
             parallel_tool_calls (bool): Whether to call tools in parallel.
             max_iterations (int): Maximum number of agent loop iterations. Defaults to 10.
         """

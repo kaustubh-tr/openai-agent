@@ -65,16 +65,16 @@ class TestChatOpenAI(unittest.TestCase):
         
         # Verify that tool_calls were detected
         if response.tool_calls:
-            self.assertTrue(len(response.tool_calls) > 0)
+            self.assertGreater(len(response.tool_calls), 0)
             # We can try to find our tool name in the calls
             tool_names = [call['name'] for call in response.tool_calls]
             self.assertIn("get_weather", tool_names)
         else:
-             # It's possible the model refused to call the tool or just answered from knowledge.
-             # But gpt-4o usually respects tool definitions.
-             # We won't fail hard if tool_calls is empty to avoid flaky tests on model behavior,
-             # but we check the structure is correct.
-             pass
+            # It's possible the model refused to call the tool or just answered from knowledge.
+            # But gpt-4o usually respects tool definitions.
+            # We won't fail hard if tool_calls is empty to avoid flaky tests on model behavior,
+            # but we check the structure is correct.
+            pass
 
 if __name__ == '__main__':
     unittest.main()

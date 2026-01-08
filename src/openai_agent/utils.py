@@ -19,11 +19,11 @@ def extract_output_text(response: Any) -> str:
 
 def extract_tool_calls(response: Any) -> List[Dict[str, Any]]:
     """
-    Extracts tool call information from the response object into a dictionary.
+    Extracts tool call information from the response object into a list of dictionaries.
     Args:
         response (Any): The response object containing tool call information.
     Returns:
-        Dict[str, Dict[str, Any]]: A dictionary with tool call details.
+        List[Dict[str, Any]]: A list of dictionaries with tool call details.
     """
     import json
     tool_calls: List[Dict[str, Any]] = []

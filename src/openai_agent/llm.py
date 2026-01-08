@@ -124,8 +124,7 @@ class ChatOpenAI:
         output_text = extract_output_text(response)
         tool_calls = extract_tool_calls(response)
         usage_dict = extract_usage_dict(response)
-        
-        
+
         return Response(
             output=output_text,
             tool_calls=tool_calls,
