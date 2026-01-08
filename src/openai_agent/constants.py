@@ -25,7 +25,7 @@ class EventPhase(str, Enum):
     FINAL = "final"
     NONE = "none"
     
-class ProcessStatus(str, Enum):
+class RunStatus(str, Enum):
     STARTED = "started"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"

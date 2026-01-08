@@ -5,7 +5,7 @@ import unittest
 # Add the project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.openai_agent import Tool, Arg
+from src.openai_agent import Tool, ArgsSchema
 
 
 class TestTool(unittest.TestCase):
@@ -14,12 +14,12 @@ class TestTool(unittest.TestCase):
             return a + b
 
         tool = Tool(
+            func=dummy_func,
             name="dummy",
             description="A dummy tool",
-            func=dummy_func,
-            args=[
-                Arg("a", int, "Argument a"),
-                Arg("b", int, "Argument b")
+            args_schema=[
+                ArgsSchema(name="a", type=int, description="Argument a"),
+                ArgsSchema(name="b", type=int, description="Argument b")
             ]
         )
 
@@ -37,12 +37,12 @@ class TestTool(unittest.TestCase):
             return a + b
 
         tool = Tool(
+            func=add,
             name="add",
             description="Adds two numbers",
-            func=add,
-            args=[
-                Arg("a", int, "First number"),
-                Arg("b", int, "Second number")
+            args_schema=[
+                ArgsSchema(name="a", type=int, description="First number"),
+                ArgsSchema(name="b", type=int, description="Second number")
             ]
         )
 
@@ -57,7 +57,12 @@ class TestTool(unittest.TestCase):
         self.assertEqual(result["b"], 20)
 
     def test_missing_argument(self):
-        tool = Tool("test", "desc", [Arg("a", int, "desc")], lambda a: a)
+        tool = Tool(
+            func=lambda a: a,
+            name="test", 
+            description="desc", 
+            args_schema=[ArgsSchema(name="a", type=int, description="desc")], 
+        )
         with self.assertRaises(ValueError):
             tool.resolve_arguments({})
 

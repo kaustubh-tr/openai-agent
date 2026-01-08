@@ -1,5 +1,5 @@
-from typing import Any, Dict, List, Optional
-from .args_schema import Arg
+from typing import Any, Dict, List, Optional, Callable
+from .args_schema import ArgsSchema
 
 
 class Tool:
@@ -8,27 +8,28 @@ class Tool:
     """
     def __init__(
         self,
+        *,
+        func: Callable,
         name: str,
         description: str,
-        args: List[Arg],
-        func,
+        args_schema: List[ArgsSchema],
         strict: Optional[bool] = None,
     ):
         """
         Initialize a Tool.
         Args:
+            func (Callable): The function to execute when the tool is called.
             name (str): The name of the tool.
             description (str): A description of what the tool does.
-            args (List[Arg]): A list of arguments the tool accepts.
-            func (Callable): The function to execute when the tool is called.
+            args_schema (List[ArgsSchema]): A list of arguments the tool accepts.
             strict (Optional[bool]): If True, model output is guaranteed to exactly match the JSON Schema
                 provided in the function definition. If None, ``strict`` argument will not
                 be included in tool definition.
         """
+        self.func = func
         self.name = name
         self.description = description
-        self.args = args
-        self.func = func
+        self.args_schema = args_schema
         self.strict = strict
 
     # OpenAI schema
@@ -41,7 +42,7 @@ class Tool:
         properties = {}
         required = []
 
-        for arg in self.args:
+        for arg in self.args_schema:
             properties[arg.name] = arg.to_json_schema()
             required.append(arg.name)
 
@@ -68,6 +69,6 @@ class Tool:
             Dict[str, Any]: The validated and cast arguments.
         """
         parsed = {}
-        for arg in self.args:
+        for arg in self.args_schema:
             parsed[arg.name] = arg.validate_and_cast(raw_args.get(arg.name))
         return parsed
