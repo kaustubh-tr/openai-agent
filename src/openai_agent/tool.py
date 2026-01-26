@@ -109,7 +109,7 @@ class Tool:
             }
         
         for param_name, param_type in type_hints.items():
-            if param_type is ToolRuntime or param_type == ToolRuntime:
+            if param_type is ToolRuntime:
                 final_args[param_name] = ToolRuntime(**(runtime_context or {}))
 
         return self.func(**final_args)

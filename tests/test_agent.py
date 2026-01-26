@@ -29,8 +29,8 @@ class TestAgentConstructor(unittest.TestCase):
         
         # Test duplicate registration
         with self.assertRaises(ValueError):
-             # Try to initialize with duplicate tools in list
-             Agent(llm=llm, tools=[tool, tool])
+            # Try to initialize with duplicate tools in list
+            Agent(llm=llm, tools=[tool, tool])
 
 @unittest.skipIf(SKIP_REAL_API_TESTS, "OPENAI_API_KEY not set")
 class TestAgent(unittest.TestCase):
