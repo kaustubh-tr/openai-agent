@@ -42,11 +42,9 @@ def main():
     agent = Agent(
         llm=llm,
         system_prompt="You are a helpful assistant that can check the weather.",
+        tools=[weather_tool]
     )
     
-    # 4. Register the tool
-    agent.add_tool(weather_tool)
-
     # 5. Run agent
     print("User: What is the weather in Tokyo?")
     try:
