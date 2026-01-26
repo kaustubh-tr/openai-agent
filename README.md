@@ -56,9 +56,9 @@ llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
 # 4. Initialize Agent
 agent = Agent(
     llm=llm,
-    system_prompt="You are a helpful assistant."
+    system_prompt="You are a helpful assistant.",
+    tools=[weather_tool]
 )
-agent.add_tool(weather_tool)
 
 # 5. Run
 # Returns a Response object
@@ -85,9 +85,9 @@ llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
 
 agent = Agent(
     llm=llm,
-    system_prompt="You are a helpful assistant."
+    system_prompt="You are a helpful assistant.",
+    tools=[weather_tool]
 )
-agent.add_tool(weather_tool)
 
 print("Agent: ", end="", flush=True)
 
@@ -104,6 +104,46 @@ for event in agent.stream(user_input="What's the weather in Tokyo?", include_int
         print(f"\n[Tool used: {event.tool_name}]", end="\nAgent: ", flush=True)
         
 print()
+```
+
+### Runtime Configuration (Context Injection)
+
+The framework allows passing a runtime context to tools using explicit context injection.
+
+Rules:
+1. Define a tool function with a parameter annotated with `ToolRuntime`.
+2. The framework will automatically inject the `runtime_context` (wrapped in `ToolRuntime`) into that parameter.
+3. Access configuration values using `ctx.{parameter}`.
+
+```python
+from typing import Dict, Any
+from openai_agent import Tool, ArgsSchema, ToolRuntime
+
+# 1. Define tool with context
+def get_user_data(user_id: str, ctx: ToolRuntime) -> str:
+    db_conn = getattr(ctx, "db_conn", None)
+    return f"Fetching data for {user_id} using {db_conn}..."
+
+# 2. Register tool 
+# Only expose 'user_id' to the LLM
+tool = Tool(
+    name="get_user_data",
+    description="Get user info",
+    func=get_user_data,
+    args_schema=[ArgsSchema("user_id", str, "ID of the user")]
+)
+
+agent = Agent(
+    llm=ChatOpenAI(api_key="fake"), 
+    tools=[tool]
+)
+
+# 3. Pass config at runtime
+# The whole dict is passed into the 'ctx' argument
+agent.invoke(
+    user_input="Who is user 123?",
+    runtime_context={"db_conn": "ProductionDB"}
+)
 ```
 
 ### Using ChatOpenAI Directly
