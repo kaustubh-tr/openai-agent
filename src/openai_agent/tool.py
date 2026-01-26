@@ -95,11 +95,19 @@ class Tool:
         
         # 2. Inject ToolRuntime if requested by the function signature
         # Use get_type_hints to properly resolve annotations, including forward references
+        import inspect
+        
         try:
             type_hints = get_type_hints(self.func)
-        except Exception:
-            # Fallback to manual inspection if get_type_hints fails
-            type_hints = {}
+        except (NameError, AttributeError, TypeError):
+            # Fallback to inspect.signature if get_type_hints fails
+            # This handles cases where annotations can't be resolved
+            sig = inspect.signature(self.func)
+            type_hints = {
+                param_name: param.annotation 
+                for param_name, param in sig.parameters.items()
+                if param.annotation != inspect.Parameter.empty
+            }
         
         for param_name, param_type in type_hints.items():
             if param_type is ToolRuntime or param_type == ToolRuntime:
