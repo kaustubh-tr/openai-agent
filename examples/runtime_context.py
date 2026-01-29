@@ -38,4 +38,4 @@ response = agent.invoke(
     runtime_context={"db_connection": "Production-SQL-01", "request_id": "req-abc-999"},
 )
 
-print(response.new_items)
+print(response.final_output)

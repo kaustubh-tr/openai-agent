@@ -173,12 +173,12 @@ messages = [
 ]
 
 # Synchronous call
-# Returns a Response object containing output, usage, tool_calls etc.
+# Returns the raw OpenAI Responses API response object
 response = llm.invoke(messages=messages)
-print(response.final_output)
+print(response.output_text)
 
 # Or streaming call
-# Returns generator of ResponseStreamEvent
+# Returns a generator of raw OpenAI response stream events
 stream = llm.stream(messages=messages)
 for event in stream:
     print(event)

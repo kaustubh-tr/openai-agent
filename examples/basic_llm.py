@@ -21,7 +21,7 @@ def main():
     print("Sending request...")
     try:
         response = llm.invoke(messages)
-        # result is now a Response object
+        # result is the raw OpenAI Responses API response object
         print(f"Result: {response}")
     except Exception as e:
         print(f"Error: {e}")
