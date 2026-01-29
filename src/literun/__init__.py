@@ -29,3 +29,5 @@ __all__ = [
     "RunResult",
     "RunResultStreaming",
 ]
+
+__version__ = "0.1.0"
