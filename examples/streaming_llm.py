@@ -22,12 +22,14 @@ def main():
 
     # 3. Call stream
     try:
-        # The stream method returns a generator of ResponseStreamEvent objects
+        # The stream method returns a generator of OpenAI response events
         stream = llm.stream(messages=messages)
 
         for event in stream:
-            print(event)
-            print()
+            # Only print text delta events for clean, readable streaming output
+            if getattr(event, "type", None) == "response.output_text.delta":
+                print(getattr(event, "delta", ""), end="", flush=True)
+        print()  # Final newline after streaming is complete
 
     except Exception as e:
         print(f"\nError: {e}")

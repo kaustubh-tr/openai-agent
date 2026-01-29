@@ -257,7 +257,7 @@ class Agent:
 
             # Update history with assistant's text (Critical for context)
             if final_output_text:
-                prompt.assistant(final_output_text)
+                prompt.add_assistant(final_output_text)
 
             for tc in tool_calls.values():
                 call_id = tc["call_id"]
@@ -359,7 +359,7 @@ class Agent:
 
             # Update history with assistant's text (Critical for context)
             if final_output_text:
-                prompt.assistant(final_output_text)
+                prompt.add_assistant(final_output_text)
 
             for tc in tool_calls.values():
                 call_id = tc["call_id"]

@@ -49,11 +49,15 @@ def main():
     print("User: What is the weather in Tokyo? Tell me a short story about it.")
     print("Agent: ", end="", flush=True)
     try:
-        for event in agent.stream(
+        for result in agent.stream(
             user_input="What is the weather in Tokyo? Tell me a short story about it."
         ):
-            print(event)
-            print()
+            event = result.event
+            # print(event)  # for complete list of events for this agent run
+            if getattr(event, "type", None) == "response.output_text.delta":
+                delta_text = getattr(event, "delta", "")
+                if isinstance(delta_text, str):
+                    print(delta_text, end="", flush=True)
 
     except Exception as e:
         print(f"\nError: {e}")

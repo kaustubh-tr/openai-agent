@@ -51,7 +51,8 @@ def main():
     print("User: What is the weather in Tokyo?")
     try:
         result = agent.invoke(user_input="What is the weather in Tokyo?")
-        print(f"Agent: {result.new_items}")
+        # print(f"Agent: {result.new_items}")  # for complete list of items for this agent run
+        print(f"Agent: {result.final_output}")
     except Exception as e:
         print(f"Error: {e}")
 
