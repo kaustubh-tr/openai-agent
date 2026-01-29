@@ -1,15 +1,20 @@
+"""Message structures for prompts."""
+
+from __future__ import annotations
+
 from typing import Any, Dict, Optional
+
 from .constants import Role, ContentType
 
 
 class PromptMessage:
+    """Domain representation of a single semantic message in a conversation.
+
+    This class is the only place that knows how to convert a semantic
+    message into an OpenAI-compatible message dictionary. It enforces
+    invariants depending on the message type.
     """
-    Domain representation of a single semantic message in the conversation.
-    
-    This class is the ONLY place that knows how to convert a semantic
-    message into an OpenAI-compatible message dictionary.
-    """
-    
+
     def __init__(
         self,
         *,
@@ -21,16 +26,19 @@ class PromptMessage:
         call_id: Optional[str] = None,
         output: Optional[str] = None,
     ) -> None:
-        """
-        Initialize a PromptMessage.
+        """Initialize a PromptMessage.
+
         Args:
-            role (Optional[Role]): The role of the message sender (e.g., USER, ASSISTANT).
-            content_type (ContentType): The type of content (e.g., INPUT_TEXT, FUNCTION_CALL).
-            text (Optional[str]): The text content of the message.
-            name (Optional[str]): The name of the tool (for function calls).
-            arguments (Optional[str]): The arguments for the tool (for function calls).
-            call_id (Optional[str]): The ID of the tool call.
-            output (Optional[str]): The output of the tool execution.
+            role: The role of the message sender (e.g., USER, ASSISTANT). Required for text messages.
+            content_type: The type of content (e.g., INPUT_TEXT, FUNCTION_CALL).
+            text: The text content of the message (required for text messages).
+            name: The name of the tool (for function calls).
+            arguments: The arguments for the tool as a JSON string (for function calls).
+            call_id: The ID of the tool call.
+            output: The output of the tool execution (for FUNCTION_CALL_OUTPUT messages).
+
+        Raises:
+            ValueError: If required fields for the given content_type are missing.
         """
         self.role = role
         self.content_type = content_type
@@ -39,12 +47,14 @@ class PromptMessage:
         self.arguments = arguments
         self.call_id = call_id
         self.output = output
-        
+
         self._validate()
-        
+
     def _validate(self) -> None:
-        """
-        Enforce invariants so invalid messages are never constructed.
+        """Enforce invariants so that invalid messages are never constructed.
+
+        Raises:
+            ValueError: If required fields are missing for the given content_type.
         """
         # Text messages (system / user / assistant)
         if self.content_type in (ContentType.INPUT_TEXT, ContentType.OUTPUT_TEXT):
@@ -71,14 +81,16 @@ class PromptMessage:
 
         else:
             raise ValueError(f"Unsupported content_type: {self.content_type}")
-        
+
     def to_openai_message(self) -> Dict[str, Any]:
-        """
-        Convert the message to an OpenAI message dictionary.
+        """Convert the PromptMessage to an OpenAI-compatible message dictionary.
+
         Returns:
-            Dict[str, Any]: The formatted message.
+            Dict[str, Any]: The formatted message dictionary.
+
         Raises:
             ValueError: If required fields are missing for the specified content_type.
+            RuntimeError: If the message state is invalid (should not occur).
         """
         # System / User / Assistant messages
         if self.content_type in (ContentType.INPUT_TEXT, ContentType.OUTPUT_TEXT):
@@ -113,6 +125,7 @@ class PromptMessage:
         raise RuntimeError("Invalid PromptMessage state")
 
     def __repr__(self) -> str:
+        """Return a concise representation of the message for debugging."""
         return (
             f"PromptMessage("
             f"content_type={self.content_type}, "

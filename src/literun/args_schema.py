@@ -1,10 +1,13 @@
+"""Schema definition for tool arguments."""
+
+from __future__ import annotations
+
 from typing import Any, List, Optional, Type, Dict
 
 
 class ArgsSchema:
-    """
-    Represents an argument for a tool.
-    """
+    """Represents an argument for a tool."""
+
     def __init__(
         self,
         *,
@@ -13,13 +16,13 @@ class ArgsSchema:
         description: str,
         enum: Optional[List[Any]] = None,
     ):
-        """
-        Initialize an ArgsSchema.
+        """Initialize an ArgsSchema.
+
         Args:
-            name (str): The name of the argument.
-            type (Type): The Python type of the argument (e.g., str, int).
-            description (str): A description of the argument.
-            enum (Optional[List[Any]]): A list of allowed values for the argument.
+            name: The name of the argument.
+            type: The Python type of the argument (e.g., str, int, float, bool).
+            description: A description of the argument for documentation purposes.
+            enum: Optional list of allowed values for the argument.
         """
         self.name = name
         self.type_ = type
@@ -28,10 +31,10 @@ class ArgsSchema:
 
     # JSON schema representation
     def to_json_schema(self) -> Dict[str, Any]:
-        """
-        Convert the argument to a JSON schema dictionary.
+        """Convert the argument to a JSON Schema representation.
+
         Returns:
-            dict: The JSON schema representation of the argument.
+            Dict[str, Any]: A dictionary representing the argument in JSON Schema format.
         """
         schema = {
             "type": self._json_type(),
@@ -43,14 +46,16 @@ class ArgsSchema:
 
     # Runtime validation / coercion
     def validate_and_cast(self, value: Any) -> Any:
-        """
-        Validate and cast a value to the argument's type.
+        """Validate a value against the argument's type and cast it.
+
         Args:
-            value (Any): The value to validate and cast.
+            value: The value to validate and cast.
+
         Returns:
-            Any: The cast value.
+            Any: The value cast to the argument's Python type.
+
         Raises:
-            ValueError: If the value is missing or invalid for the type.
+            ValueError: If the value is missing or cannot be cast to the expected type.
         """
         if value is None:
             raise ValueError(f"Missing required argument '{self.name}'")
@@ -63,12 +68,13 @@ class ArgsSchema:
 
     # Helpers
     def _json_type(self) -> str:
-        """
-        Get the JSON type string corresponding to the Python type.
+        """Get the JSON Schema type corresponding to the Python type.
+
         Returns:
-            str: The JSON type string (e.g., "string", "integer").
+            str: The JSON type string (e.g., "string", "integer", "number", "boolean").
+
         Raises:
-            ValueError: If the Python type is not supported.
+            ValueError: If the Python type is unsupported.
         """
         if self.type_ is str:
             return "string"

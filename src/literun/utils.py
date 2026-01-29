@@ -1,10 +1,16 @@
+"""Utilities for extracting structured data from OpenAI response objects."""
+
+from __future__ import annotations
+
 from typing import List, Dict, Any
 
+
 def extract_output_text(response: Any) -> str:
-    """
-    Extracts and concatenates output text from the response object.
+    """Extracts and concatenates output text from the response object.
+
     Args:
-        response (Any): The response object containing output messages.
+        response: The response object containing output messages.
+
     Returns:
         str: The concatenated output text.
     """
@@ -17,33 +23,40 @@ def extract_output_text(response: Any) -> str:
 
     return "".join(texts)
 
+
 def extract_tool_calls(response: Any) -> List[Dict[str, Any]]:
-    """
-    Extracts tool call information from the response object into a list of dictionaries.
+    """Extracts tool call information from the response object into a list of dictionaries.
+
     Args:
-        response (Any): The response object containing tool call information.
+        response: The response object containing tool call information.
+
     Returns:
         List[Dict[str, Any]]: A list of dictionaries with tool call details.
     """
     import json
+
     tool_calls: List[Dict[str, Any]] = []
     for output in response.output:
         if output.type == "function_call":
-            tool_calls.append({
-                "arguments": json.loads(output.arguments),
-                "call_id": output.call_id,
-                "name": output.name,
-                "type": output.type,
-                "id": output.id,
-                "status": output.status
-            })
+            tool_calls.append(
+                {
+                    "arguments": json.loads(output.arguments),
+                    "call_id": output.call_id,
+                    "name": output.name,
+                    "type": output.type,
+                    "id": output.id,
+                    "status": output.status,
+                }
+            )
     return tool_calls
 
+
 def extract_usage_dict(response: Any) -> Dict[str, Any]:
-    """
-    Extracts usage statistics from the response object into a dictionary.
+    """Extracts usage statistics from the response object into a dictionary.
+
     Args:
-        response (Any): The response object containing usage statistics.
+        response: The response object containing usage statistics.
+
     Returns:
         Dict[str, Any]: A dictionary with usage statistics.
     """
@@ -56,5 +69,5 @@ def extract_usage_dict(response: Any) -> Dict[str, Any]:
         "output_tokens_details": {
             "reasoning_tokens": response.usage.output_tokens_details.reasoning_tokens
         },
-        "total_tokens": response.usage.total_tokens
+        "total_tokens": response.usage.total_tokens,
     }
