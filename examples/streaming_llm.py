@@ -4,15 +4,13 @@ import os
 # Add the project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.openai_agent import ChatOpenAI, StreamEventType, EventPhase
+from literun import ChatOpenAI
+
 
 def main():
     # 1. Initialize the LLM
-    llm = ChatOpenAI(
-        model="gpt-4o",
-        temperature=0.7
-    )
-    
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
+
     # 2. Prepare messages
     messages = [
         {"role": "system", "content": "You are a poetic assistant."},
@@ -26,16 +24,14 @@ def main():
     try:
         # The stream method returns a generator of ResponseStreamEvent objects
         stream = llm.stream(messages=messages)
-        
+
         for event in stream:
-            # We are looking for text deltas
-            if event.type == StreamEventType.TEXT and event.phase == EventPhase.DELTA:
-                print(event.text, end="", flush=True)
-                
-        print() # Newline at end
-        
+            print(event)
+            print()
+
     except Exception as e:
         print(f"\nError: {e}")
+
 
 if __name__ == "__main__":
     main()

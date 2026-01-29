@@ -4,15 +4,13 @@ import os
 # Add the project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.openai_agent import ChatOpenAI
+from literun import ChatOpenAI
+
 
 def main():
     # 1. Initialize the LLM directly
-    llm = ChatOpenAI(
-        model="gpt-4o",
-        temperature=0.7
-    )
-    
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
+
     # 2. Prepare messages
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -23,11 +21,11 @@ def main():
     print("Sending request...")
     try:
         response = llm.invoke(messages)
-        # response is now a Response object
-        print(f"Response: {response.output}")
-        # print(f"Usage: {response.usage}")
+        # result is now a Response object
+        print(f"Result: {response}")
     except Exception as e:
         print(f"Error: {e}")
+
 
 if __name__ == "__main__":
     main()
