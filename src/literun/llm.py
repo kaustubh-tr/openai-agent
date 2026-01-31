@@ -61,7 +61,7 @@ class ChatOpenAI(BaseModel):
     store: bool = False
     model_kwargs: dict[str, Any] = Field(default_factory=dict)
 
-    _client: OpenAI = PrivateAttr()
+    _client: OpenAI | None = PrivateAttr(default=None)
     _tools: list[Tool] | None = PrivateAttr(default=None)
     _tool_choice: str | None = PrivateAttr(default=None)
     _parallel_tool_calls: bool | None = PrivateAttr(default=None)
@@ -121,6 +121,7 @@ class ChatOpenAI(BaseModel):
     @property
     def client(self) -> OpenAI:
         """Access the OpenAI client."""
+        assert self._client is not None, "Client not initialized"
         return self._client
 
     def bind_tools(
