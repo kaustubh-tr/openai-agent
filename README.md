@@ -1,45 +1,41 @@
 # LiteRun 🚀
 
+[![PyPI - Version](https://img.shields.io/pypi/v/literun)](https://pypi.org/project/literun/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/literun)](https://pypi.org/project/literun/)
+[![PyPI - License](https://img.shields.io/pypi/l/literun)](https://opensource.org/licenses/MIT)
+[![Documentation](https://img.shields.io/badge/docs-DOCS-blue)](https://github.com/kaustubh-tr/literun/blob/main/DOCS.md)
+
 A lightweight, flexible Python framework for building custom OpenAI agents (Responses API) with tool support and structured prompt management.
 
 ## Features
 
-- **Custom Agent Execution**: Complete control over the agent execution loop, supporting both synchronous and streaming responses.
-- **Tool Support**: Easy registration and execution of Python functions as tools.
-- **Type Safety**: Strong typing for tool arguments with automatic coercion and validation.
-- **Prompt Templates**: Structured way to build system, user, and assistant messages.
-- **Constants**: Pre-defined constants for OpenAI roles and message types.
-- **Streaming Support**: Built-in support for real-time streaming of agent thoughts, tool calls, and responses.
-- **Tool Management**: Easy-to-define tools with automatic JSON schema generation (`ArgsSchema`).
-- **Event-Driven**: Structured event system for granular control over the agent's execution lifecycle.
-- **OpenAI Compatible**: Seamlessly integrates with `openai-python` client.
+- **Custom Agent Execution**: Control the loop with synchronous and streaming support.
+- **Tool Support**: Easy registration with Pydantic-powered validation.
+- **Type Safety**: Built for modern Python 3.10+ environments.
+- **Prompt Templates**: Structured message management.
+- **Event-Driven**: Granular control via a rich event system.
+
+For detailed documentation on Architecture, Streaming, and Advanced Configuration, see [DOCS.md](https://github.com/kaustubh-tr/literun/blob/main/DOCS.md).
 
 ## Requirements
 
-- Python 3.10+  
-- [OpenAI Python API library](https://pypi.org/project/openai/)
+- Python 3.10+
+
+> **Note**: Core dependencies like `openai` and `pydantic` are automatically installed when you install `literun`.
 
 ## Installation
 
-### Production
+You can install `literun` directly from PyPI:
 
 ```bash
 pip install literun
-```
-
-### Development
-
-```bash
-git clone https://github.com/kaustubh-tr/literun.git
-cd openai-agent
-pip install -e .[dev]
 ```
 
 ## Quick Start
 
 ### Basic Agent
 
-Here is a simple example of how to create an agent with a custom tool:
+Here is a simple example of how to create an agent with a custom tool.
 
 ```python
 import os
@@ -69,158 +65,84 @@ weather_tool = Tool(
     ],
 )
 
-# 3. Initialize LLM and Agent
-llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
-
-# 4. Initialize Agent
+# 3. Initialize Agent
 agent = Agent(
-    llm=llm,
+    llm=ChatOpenAI(model="gpt-4.1-mini", temperature=0.7),
     system_prompt="You are a helpful assistant.",
     tools=[weather_tool],
 )
 
-# 5. Run the Agent
+# 4. Run the Agent
 result = agent.invoke(user_input="What is the weather in Tokyo?")
 print(f"Final Answer: {result.final_output}")
 ```
 
-### Streaming Agent
+### Advanced Usage
 
-You can also stream the agent's execution to handle events in real-time:
+LiteRun supports **Streaming**, **Runtime Context Injection** (for secrets), and **Direct LLM Usage**.
 
-```python
-# ... (setup tool and agent as above)
-
-print("Agent: ", end="", flush=True)
-for result in agent.stream(user_input="What is the weather in Tokyo?"):
-    event = result.event
-    if event.type == "response.output_text.delta":
-        print(event.delta, end="", flush=True)
-    elif event.type == "response.function_call_arguments.done":
-        print(f"\n[Tool Call: {event.name}]")
-
-print()
-```
-
-### Runtime Configuration (Context Injection)
-
-The framework allows passing a runtime context to tools using explicit context injection.
-
-Rules:
-1. Define a tool function with a parameter annotated with `ToolRuntime`.
-2. The framework will automatically inject the `runtime_context` (wrapped in `ToolRuntime`) into that parameter.
-3. Access configuration values using `ctx.{parameter}`.
-
-```python
-from typing import Dict, Any
-from literun import Tool, ArgsSchema, ToolRuntime
-
-# 1. Define tool with context
-def get_weather(location: str, ctx: ToolRuntime) -> str:
-    """
-    Returns weather info for a location.
-    The runtime context can include sensitive info like user_id or API keys.
-    """
-    user_id = getattr(ctx, "user_id", "unknown_user")
-    api_key = getattr(ctx, "weather_api_key", None)
-
-    # Simulate fetching weather
-    return f"Weather for {location} fetched using API key '{api_key}' for user '{user_id}'."
-
-# 2. Register tool 
-tool = Tool(
-    name="get_weather",
-    description="Get the weather for a given location",
-    func=get_weather,
-    args_schema=[
-        ArgsSchema(
-            name="location",
-            type=str,
-            description="Location for which to get the weather",
-        )
-    ]
-)
-
-# 3. Setup agent
-agent = Agent(
-    llm=ChatOpenAI(api_key="fake"), 
-    tools=[tool]
-)
-
-# 4. Pass config at runtime
-# The whole dict is passed into the 'ctx' argument
-agent.invoke(
-    user_input="What's the weather in London?",
-    runtime_context={
-        "user_id": "user_123",
-        "weather_api_key": "SECRET_API_KEY_456"
-    }
-)
-```
-
-### Using ChatOpenAI Directly
-
-You can also use the `ChatOpenAI` class directly if you don't need the agent loop (e.g., for simple, one-off LLM calls).
-
-```python
-from literun import ChatOpenAI
-
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
-
-messages = [
-    {"role": "system", "content": "You are a helpful assistant."},
-    {"role": "user", "content": "Tell me a joke."}
-]
-
-# Synchronous call
-# Returns the raw OpenAI Responses API response object
-response = llm.invoke(messages=messages)
-print(response.output_text)
-
-# Or streaming call
-# Returns a generator of raw OpenAI response stream events
-stream = llm.stream(messages=messages)
-for event in stream:
-    print(event)
-```
-
-See [examples](examples/) for complete runnable examples.
+👉 Check out the [Documentation](https://github.com/kaustubh-tr/literun/blob/main/DOCS.md) and [Examples](https://github.com/kaustubh-tr/literun/blob/main/examples/) for more details.
 
 ## Project Structure
 
-The project is organized as follows:
-
-```
+```text
 literun/
 ├── src/
 │   └── literun/          # Main package source
-│       ├── agent.py      # Agent runtime logic
-│       ├── llm.py        # LLM client wrapper
-│       ├── tool.py       # Tool definition and execution
-│       ├── events.py     # Stream event types
+│       ├── agent.py      # Agent orchestrator
+│       ├── llm.py        # ChatOpenAI wrapper
+│       ├── tool.py       # Tool & Schema definitions
 │       └── ...
-├── tests/                # Unit tests
-├── examples/             # Usage examples
-└── pyproject.toml        # Project configuration
+├── tests/                # Unit tests (agent, llm, tools, prompts)
+├── examples/             # Runnable examples
+├── DOCS.md               # Detailed documentation
+├── LICENSE               # MIT License
+├── README.md             # This file
+└── pyproject.toml        # Project configuration & dependencies
 ```
+
+## Contributing
+
+We welcome contributions! Please follow these steps to set up your development environment:
+
+1.  **Fork** the repository and clone it locally:
+
+    ```bash
+    git clone https://github.com/kaustubh-tr/literun.git
+    cd literun
+    ```
+
+2.  **Install** in editable mode with development dependencies:
+
+    ```bash
+    pip install -e .[dev]
+    ```
+
+3.  **Create** a feature branch and make your changes.
+
+4.  **Test** your changes (see below).
+
+5.  **Submit** a pull request.
 
 ## Testing
 
-Run the test suite using `unittest`:
+This project uses `pytest` as the primary test runner, but supports `unittest` as well.
+
+```bash
+# Run all tests
+pytest
+```
+
+or using unittest:
 
 ```bash
 python -m unittest discover tests
 ```
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests: `python -m unittest discover tests`
-5. Update the example usage if needed
-6. Submit a pull request
+> **Note**: Some integration tests require the `OPENAI_API_KEY` environment variable. They are automatically skipped if it is missing.
 
 ## License
 
-MIT
+Copyright (c) 2026 Kaustubh Trivedi.
+
+Distributed under the terms of the [MIT](https://github.com/kaustubh-tr/literun/blob/main/LICENSE) license, LiteRun is free and open source software.
