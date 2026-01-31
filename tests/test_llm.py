@@ -15,21 +15,30 @@ SKIP_REAL_API_TESTS = os.getenv("OPENAI_API_KEY") is None
 
 @unittest.skipIf(SKIP_REAL_API_TESTS, "OPENAI_API_KEY not set")
 class TestChatOpenAI(unittest.TestCase):
+    """
+    Integration tests for ChatOpenAI client wrapper.
+    """
+
     def test_initialization(self):
+        """Verify initialization sets attributes correctly."""
         llm = ChatOpenAI(model="gpt-4o")
         self.assertEqual(llm.model, "gpt-4o")
         self.assertIsNone(llm._parallel_tool_calls)
 
-    def test_invoke_simple(self):
-        llm = ChatOpenAI(model="gpt-4o")
-        messages = [{"role": "user", "content": "Say hello world"}]
+    def test_invoke_simple_text(self):
+        """Verify synchronous text generation."""
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.0)
+        messages = [{"role": "user", "content": "Say 'hello world'"}]
+
         response = llm.invoke(messages)
+
         self.assertIsNotNone(response.output_text)
         self.assertIn("hello", response.output_text.lower())
 
-    def test_stream_simple(self):
-        llm = ChatOpenAI(model="gpt-4o")
-        messages = [{"role": "user", "content": "Say hello world"}]
+    def test_stream_simple_text(self):
+        """Verify streaming text generation."""
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.0)
+        messages = [{"role": "user", "content": "Say 'hello world'"}]
 
         chunks = []
         for event in llm.stream(messages=messages):
@@ -40,38 +49,43 @@ class TestChatOpenAI(unittest.TestCase):
         full_text = "".join(chunks)
         self.assertIn("hello", full_text.lower())
 
-    def test_bind_tools_call(self):
-        # Define a dummy tool
+    def test_bind_tools_tool_call(self):
+        """Verify binding tools enables tool calls in the LLM response."""
+
+        # 1. Define Tool
         def get_weather(location: str):
             return "Sunny"
 
         tool = Tool(
             name="get_weather",
-            description="Get weather",
+            description="Get weather for a location",
             func=get_weather,
             args_schema=[ArgsSchema(name="location", type=str, description="City")],
         )
 
-        llm = ChatOpenAI(model="gpt-4o")
+        # 2. Setup LLM
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.0)
         llm.bind_tools(tools=[tool])
 
-        # We need a prompt that forces a tool call
+        # 3. Invoke with tool-triggering prompt
         messages = [{"role": "user", "content": "What is the weather in London?"}]
         response = llm.invoke(messages)
+
+        # 4. Extract and Verify
         tool_calls = extract_tool_calls(response)
 
-        # Verify that tool_calls were detected
+        # Note: We rely on the model's behavior here.
+        # gpt-4o is generally reliable at calling tools when bound.
         if tool_calls:
             self.assertGreater(len(tool_calls), 0)
-            # We can try to find our tool name in the calls
             tool_names = [call["name"] for call in tool_calls]
             self.assertIn("get_weather", tool_names)
         else:
-            # It's possible the model refused to call the tool or just answered from knowledge.
-            # But gpt-4o usually respects tool definitions.
-            # We won't fail hard if tool_calls is empty to avoid flaky tests on model behavior,
-            # but we check the structure is correct.
-            pass
+            # If model didn't call tool (rare but possible), we shouldn't fail
+            # unpredictably, but warn. In strict CI, we might retry or fail.
+            print(
+                "WARNING: Model did not generate a tool call in test_bind_tools_call."
+            )
 
 
 if __name__ == "__main__":
