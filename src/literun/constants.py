@@ -2,20 +2,25 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from typing import Literal
 
+Role = Literal["system", "user", "assistant", "developer", "tool"]
 
-class Role(str, Enum):
-    SYSTEM = "system"
-    USER = "user"
-    ASSISTANT = "assistant"
-    DEVELOPER = "developer"
-    TOOL = "tool"
+ContentType = Literal[
+    "input_text",
+    "output_text",
+    "message",
+    "function_call",
+    "function_call_output",
+]
 
+ToolChoice = Literal["auto", "none", "required"]
+ReasoningEffort = Literal["low", "medium", "high"]
+Verbosity = Literal["low", "medium", "high"]
+TextFormat = Literal["text", "json_object", "json_schema"]
 
-class ContentType(str, Enum):
-    INPUT_TEXT = "input_text"
-    OUTPUT_TEXT = "output_text"
-    MESSAGE = "message"
-    FUNCTION_CALL = "function_call"
-    FUNCTION_CALL_OUTPUT = "function_call_output"
+DEFAULT_OPENAI_MODEL = "gpt-4.1-mini"
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_TIMEOUT = 60.0  # seconds
+DEFAULT_MAX_TOOL_CALLS_LIMIT = 10
+DEFAULT_MAX_ITERATIONS_LIMIT = 20
