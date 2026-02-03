@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from typing import Iterable, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
-from .prompt_message import PromptMessage
+from .message import PromptMessage
 
 
 class PromptTemplate(BaseModel):
@@ -16,7 +16,13 @@ class PromptTemplate(BaseModel):
     OpenAI API boundary.
     """
 
-    messages: list[PromptMessage] = Field(default_factory=list)
+    _messages: list[PromptMessage] = PrivateAttr(default_factory=list)
+    """List of messages in the prompt template."""
+
+    @property
+    def messages(self) -> list[PromptMessage]:
+        """Return a read-only view of the messages."""
+        return self._messages
 
     def add_message(self, message: PromptMessage) -> PromptTemplate:
         """Add a custom prompt message.
@@ -60,7 +66,7 @@ class PromptTemplate(BaseModel):
         return self.add_message(
             PromptMessage(
                 role="system",
-                content_type="input_text",
+                content_type="text",
                 text=text,
             )
         )
@@ -77,7 +83,7 @@ class PromptTemplate(BaseModel):
         return self.add_message(
             PromptMessage(
                 role="user",
-                content_type="input_text",
+                content_type="text",
                 text=text,
             )
         )
@@ -94,7 +100,7 @@ class PromptTemplate(BaseModel):
         return self.add_message(
             PromptMessage(
                 role="assistant",
-                content_type="output_text",
+                content_type="text",
                 text=text,
             )
         )
@@ -118,7 +124,7 @@ class PromptTemplate(BaseModel):
         """
         return self.add_message(
             PromptMessage(
-                content_type="function_call",
+                content_type="tool_call",
                 name=name,
                 arguments=arguments,
                 call_id=call_id,
@@ -142,7 +148,7 @@ class PromptTemplate(BaseModel):
         """
         return self.add_message(
             PromptMessage(
-                content_type="function_call_output",
+                content_type="tool_call_output",
                 call_id=call_id,
                 output=output,
             )
@@ -161,13 +167,13 @@ class PromptTemplate(BaseModel):
         new.messages = list(self.messages)
         return new
 
-    def to_openai_input(self) -> list[dict[str, Any]]:
+    def convert_to_openai_input(self) -> list[dict[str, Any]]:
         """Convert the template to OpenAI message dictionaries.
 
         Returns:
             list[dict[str, Any]]: The formatted messages.
         """
-        return [msg.to_openai_message() for msg in self.messages]
+        return [msg.convert_to_openai_message() for msg in self.messages]
 
     def __len__(self) -> int:
         """Return the number of messages in the template."""
