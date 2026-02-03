@@ -81,23 +81,28 @@ search_database_tool = Tool(
     ]
 )
 
-# 4. Configure your model
-llm = ChatOpenAI(
-    model="gpt-4.1-mini", 
-    temperature=0.7,
-    timeout=10,
-    max_output_tokens=1000,
-)
-
-# 5. Create the agent
-agent = Agent(
-    llm=llm,
-    system_prompt=SYSTEM_PROMPT,
-    tools=[weather_tool, search_database_tool],
-    max_iterations=5,
-)
 
 def main():
+    if not os.getenv("OPENAI_API_KEY"):
+        print("Please set OPENAI_API_KEY environment variable.")
+        return
+    
+    # 4. Configure your model
+    llm = ChatOpenAI(
+        model="gpt-4.1-mini", 
+        temperature=0.7,
+        timeout=10,
+        max_output_tokens=1000,
+    )
+
+    # 5. Create the agent
+    agent = Agent(
+        llm=llm,
+        system_prompt=SYSTEM_PROMPT,
+        tools=[weather_tool, search_database_tool],
+        max_iterations=5,
+    )
+
     # 6. Define the prompt template with chat history
     user_input = "Find customer records for John Doe with user id and request id."
     

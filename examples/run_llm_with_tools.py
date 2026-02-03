@@ -38,15 +38,20 @@ weather_tool = Tool(
     ],
 )
 
-# 3. Configure the LLM
-llm = ChatOpenAI(
-    model="gpt-4.1-mini",
-    temperature=0.0,
-    timeout=10,
-    max_output_tokens=1000,
-)
 
 def main():
+    if not os.getenv("OPENAI_API_KEY"):
+        print("Please set OPENAI_API_KEY environment variable.")
+        return
+    
+    # 3. Configure the LLM
+    llm = ChatOpenAI(
+        model="gpt-4.1-mini",
+        temperature=0.0,
+        timeout=10,
+        max_output_tokens=1000,
+    )
+
     # 4. Bind tools to the LLM
     # This registers the tools with the model instance for all subsequent calls
     llm.bind_tools(tools=[weather_tool])
