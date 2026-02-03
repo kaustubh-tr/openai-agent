@@ -57,9 +57,10 @@ jobs:
         with:
           name: dist
           path: dist/
+          retention-days: 1
 
   publish-testpypi:
-    name: Publish to test PyPI
+    name: Publish to TestPyPI
     needs: build
     runs-on: ubuntu-latest
     environment: release
@@ -72,7 +73,7 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Publish to test PyPI
+      - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
@@ -80,8 +81,8 @@ jobs:
           skip-existing: true
           verbose: true
 
-  verify-release:
-    name: Verify Release
+  verify-testpypi:
+    name: Verify TestPyPI
     needs: publish-testpypi
     runs-on: ubuntu-latest
     steps:
@@ -106,7 +107,7 @@ jobs:
 
   publish-pypi:
     name: Publish to PyPI
-    needs: verify-release
+    needs: verify-testpypi
     runs-on: ubuntu-latest
     environment: release
     permissions:
@@ -123,3 +124,25 @@ jobs:
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           verbose: true
+  
+  verify-pypi:
+    name: Verify PyPI Release
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+
+      - name: Wait for PyPI CDN
+        # CRITICAL: Real PyPI takes time to propagate to the world. 
+        # Without this, the install step will often fail with "Version not found".
+        run: |
+          echo "Waiting for PyPI CDN propagation..."
+          sleep 120 
+
+      - name: Verify PyPI Install
+        run: |
+          pip install literun==${{ inputs.version }}
+          python -c "import literun; print(f'PyPI install successful: {literun.__version__}')"
