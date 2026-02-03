@@ -4,15 +4,10 @@ from __future__ import annotations
 
 from typing import Literal
 
-Role = Literal["system", "user", "assistant", "developer", "tool"]
 
-ContentType = Literal[
-    "input_text",
-    "output_text",
-    "message",
-    "function_call",
-    "function_call_output",
-]
+Role = Literal["system", "user", "assistant", "tool"]
+
+ContentType = Literal["text", "tool_call", "tool_call_output"]
 
 ToolChoice = Literal["auto", "none", "required"]
 ReasoningEffort = Literal["none", "low", "medium", "high"]

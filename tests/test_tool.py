@@ -30,7 +30,7 @@ class TestToolDefinition(unittest.TestCase):
             ],
         )
 
-        schema = tool.to_openai_tool()
+        schema = tool.convert_to_openai_tool()
 
         # Note: The current implementation returns a flat structure with 'type': 'function'
         # rather than nested {"type": "function", "function": {...}}.
@@ -60,12 +60,12 @@ class TestToolDefinition(unittest.TestCase):
         )
 
         # 1. Valid arguments
-        result_valid = tool.resolve_arguments({"a": 1, "b": 2})
+        result_valid = tool._resolve_arguments({"a": 1, "b": 2})
         self.assertEqual(result_valid["a"], 1)
         self.assertEqual(result_valid["b"], 2)
 
         # 2. String coercion (e.g. from LLM output)
-        result_coerced = tool.resolve_arguments({"a": "10", "b": "20"})
+        result_coerced = tool._resolve_arguments({"a": "10", "b": "20"})
         self.assertEqual(result_coerced["a"], 10)
         self.assertEqual(result_coerced["b"], 20)
 
@@ -79,7 +79,7 @@ class TestToolDefinition(unittest.TestCase):
         )
 
         with self.assertRaises(ValueError):
-            tool.resolve_arguments({})
+            tool._resolve_arguments({})
 
 
 class TestRuntimeContext(unittest.TestCase):
@@ -109,7 +109,7 @@ class TestRuntimeContext(unittest.TestCase):
         context = {"user_id": 42}
 
         # Use Runner directly to bypass LLM call and test tool execution
-        result = Runner._execute_tool(agent, "get_user_id", {}, runtime_context=context)
+        result = Runner._run_tool(agent, "get_user_id", {}, runtime_context=context)
         self.assertEqual(result, "User ID is 42")
 
     def test_mixed_args_and_context(self):
@@ -130,9 +130,7 @@ class TestRuntimeContext(unittest.TestCase):
         context = {"factor": 3}
 
         # Execution
-        result = Runner._execute_tool(
-            agent, "multiply", {"x": 10}, runtime_context=context
-        )
+        result = Runner._run_tool(agent, "multiply", {"x": 10}, runtime_context=context)
         self.assertEqual(result, "30")
 
     def test_missing_context_arg(self):
@@ -152,7 +150,7 @@ class TestRuntimeContext(unittest.TestCase):
         agent = Agent(llm=ChatOpenAI(api_key="fake"), tools=[tool])
 
         # Pass None as context -> Runner should provide an empty ToolRuntime
-        result = Runner._execute_tool(agent, "check", {}, runtime_context=None)
+        result = Runner._run_tool(agent, "check", {}, runtime_context=None)
         self.assertEqual(result, "Not found")
 
 
@@ -180,7 +178,7 @@ class TestFutureAnnotations(unittest.TestCase):
         agent = Agent(llm=ChatOpenAI(api_key="fake"), tools=[tool])
 
         # Execute the tool with runtime context
-        result = Runner._execute_tool(
+        result = Runner._run_tool(
             agent,
             "get_config",
             {"key": "db_host"},

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Any
 
 from openai.types.responses import Response
@@ -16,6 +16,8 @@ class RunResult(BaseModel):
     Used in the ``Agent.invoke()`` method. Contains the full execution
     trace accumulated during a single agent run.
     """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     input: str | list[Any]
     """The original input items before ``run()`` was called."""
@@ -35,6 +37,8 @@ class RunResultStreaming(BaseModel):
     Used in the ``Agent.stream()`` method. Each instance represents a
     single stream event while accumulating completed items.
     """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     input: str | list[Any]
     """The original input items before ``run()`` was called."""

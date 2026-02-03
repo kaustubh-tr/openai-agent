@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterator
+from typing import Any, Iterator, AsyncIterator
 from pydantic import BaseModel, PrivateAttr, model_validator
 
 from .tool import Tool
 from .llm import ChatOpenAI
-from .prompt_template import PromptTemplate
+from .prompt import PromptTemplate
 from .results import RunResult, RunResultStreaming
 from .runner import Runner
 from .constants import (
@@ -22,29 +22,34 @@ class Agent(BaseModel):
 
     This class holds the configuration and state of the agent.
     Execution logic is delegated to the `Runner` class.
-
-    Args:
-        llm: The OpenAI language model instance to use.
-        system_prompt: The system instructions for the agent.
-        tools: An optional list of Tool instances to register.
-        tool_choice: Strategy for selecting tools during execution.
-            Options: "auto", "none", "required".
-        parallel_tool_calls: Whether to call tools in parallel.
-        max_iterations: Maximum number of iterations for the agent loop. Must be >= 1.
-
-    Raises:
-        ValueError: If max_iterations is less than 1.
     """
 
     llm: ChatOpenAI
+    """The language model used by the agent."""
+    
     system_prompt: str | None = None
+    """The system prompt to initialize the agent's behavior."""
+    
     tools: list[Tool] | None = None
+    """A list of tools available to the agent."""
+    
     tool_choice: ToolChoice = "auto"
+    """The strategy for selecting tools during execution. 
+
+    Options: `auto`, `none`, `required`.
+    """
+    
     parallel_tool_calls: bool = True
+    """Whether to call tools in parallel when multiple are invoked."""
+    
     max_tool_calls: int = DEFAULT_MAX_TOOL_CALLS_LIMIT
+    """Maximum number of tool calls allowed per agent run."""
+    
     max_iterations: int = DEFAULT_MAX_ITERATIONS_LIMIT
+    """Maximum number of iterations for the agent loop."""
 
     _tools: dict[str, Tool] = PrivateAttr(default_factory=dict)
+    """Internal mapping of tool names to Tool instances."""
 
     @model_validator(mode="after")
     def _validate_config(self) -> Agent:
@@ -81,27 +86,6 @@ class Agent(BaseModel):
             tool_map[tool.name] = tool
         return tool_map
 
-    def add_tool(self, tool: Tool) -> None:
-        """Add a single tool at runtime.
-
-        This method mutates agent state (internal tool registry).
-        Intended for advanced/dynamic use cases.
-
-        Args:
-            tool: The tool instance to register.
-
-        Raises:
-            ValueError: If a tool with the same name is already registered.
-        """
-        if tool.name in self._tools:
-            raise ValueError(f"Tool '{tool.name}' already registered")
-        self._tools[tool.name] = tool
-
-        # Keep public list in sync for Runner/LLM usage
-        if self.tools is None:
-            self.tools = []
-        self.tools.append(tool)
-
     def invoke(
         self,
         *,
@@ -120,10 +104,36 @@ class Agent(BaseModel):
             runtime_context: Optional runtime context dictionary to pass to tools.
 
         Returns:
-            ``RunResult``: The result of the agent run, including user input,
-                internal items (messages, tool calls), and the final output text.
+            ``RunResult``: The result of the agent run.
         """
         return Runner.run(
+            agent=self,
+            user_input=user_input,
+            prompt_template=prompt_template,
+            runtime_context=runtime_context,
+        )
+
+    async def ainvoke(
+        self,
+        *,
+        user_input: str,
+        prompt_template: PromptTemplate | None = None,
+        runtime_context: dict[str, Any] | None = None,
+    ) -> RunResult:
+        """Run the agent asynchronously.
+
+        Executes the agent loop asynchronously, calling the language model
+        and tools until a final response is produced.
+
+        Args:
+            user_input: The input text from the user.
+            prompt_template: Optional template to initialize conversation history.
+            runtime_context: Optional runtime context dictionary to pass to tools.
+
+        Returns:
+            ``RunResult``: The result of the agent run.
+        """
+        return await Runner.arun(
             agent=self,
             user_input=user_input,
             prompt_template=prompt_template,
@@ -137,10 +147,10 @@ class Agent(BaseModel):
         prompt_template: PromptTemplate | None = None,
         runtime_context: dict[str, Any] | None = None,
     ) -> Iterator[RunResultStreaming]:
-        """Run the agent with streaming output.
+        """Run the agent synchronously with streaming output.
 
-        Streams events as they happen (tokens, tool calls, tool results).
-        Useful for real-time UIs.
+        Streams events as they occur (tokens, tool calls, tool results).
+        Useful for real-time user interfaces.
 
         Args:
             user_input: The input text from the user.
@@ -148,11 +158,39 @@ class Agent(BaseModel):
             runtime_context: Optional runtime context dictionary to pass to tools.
 
         Yields:
-            ``RunResultStreaming``: Iteration of events from the agent execution.
+            ``RunResultStreaming``: Individual streaming events from the agent execution.
         """
-        return Runner.run_streamed(
+        return Runner.run_stream(
             agent=self,
             user_input=user_input,
             prompt_template=prompt_template,
             runtime_context=runtime_context,
         )
+
+    async def astream(
+        self,
+        *,
+        user_input: str,
+        prompt_template: PromptTemplate | None = None,
+        runtime_context: dict[str, Any] | None = None,
+    ) -> AsyncIterator[RunResultStreaming]:
+        """Run the agent asynchronously with streaming output.
+
+        Streams events asynchronously as they occur (tokens, tool calls, tool results).
+        Useful for real-time user interfaces.
+
+        Args:
+            user_input: The input text from the user.
+            prompt_template: Optional template to initialize conversation history.
+            runtime_context: Optional runtime context dictionary to pass to tools.
+
+        Yields:
+            ``RunResultStreaming``: Individual streaming events from the agent execution.
+        """
+        async for event in Runner.arun_stream(
+            agent=self,
+            user_input=user_input,
+            prompt_template=prompt_template,
+            runtime_context=runtime_context,
+        ):
+            yield event

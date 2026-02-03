@@ -6,8 +6,8 @@ from .agent import Agent
 from .llm import ChatOpenAI
 from .tool import Tool, ToolRuntime
 from .args_schema import ArgsSchema
-from .prompt_template import PromptTemplate
-from .prompt_message import PromptMessage
+from .prompt import PromptTemplate
+from .message import PromptMessage
 from .constants import Role, ContentType
 from .items import RunItem
 from .events import StreamEvent

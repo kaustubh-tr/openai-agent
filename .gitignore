@@ -59,3 +59,7 @@ celerybeat.pid
 
 # macOS
 .DS_Store
+
+# Extras
+extra/
+.secrets

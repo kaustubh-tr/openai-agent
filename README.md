@@ -12,6 +12,7 @@ A lightweight, flexible Python framework for building custom OpenAI agents (Resp
 - **Custom Agent Execution**: Control the loop with synchronous and streaming support.
 - **Tool Support**: Easy registration with Pydantic-powered validation.
 - **Type Safety**: Built for modern Python 3.10+ environments.
+- **Async & Sync**: Standard synchronous methods (`invoke`/`stream`) and full `asyncio` support (`ainvoke`/`astream`).
 - **Prompt Templates**: Structured message management.
 - **Event-Driven**: Granular control via a rich event system.
 

@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterator
+from typing import Any, Iterator, AsyncIterator
 from pydantic import BaseModel, Field, PrivateAttr, model_validator
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 from openai.types.responses import Response
 
 from .tool import Tool
-from .prompt_template import PromptTemplate
+from .prompt import PromptTemplate
 from .events import ResponseStreamEvent
 from .constants import (
     Verbosity,
@@ -25,46 +25,73 @@ class ChatOpenAI(BaseModel):
 
     Provides a unified interface to call the OpenAI Responses API, optionally
     binding tools and streaming outputs.
-
-    Args:
-        model: The model name to use.
-        temperature: Sampling temperature.
-        api_key: OpenAI API key.
-        organization: OpenAI organization ID.
-        project: OpenAI project ID.
-        base_url: Custom base URL for OpenAI API.
-        max_output_tokens: Maximum number of tokens in the output.
-        timeout: Request timeout in seconds.
-        max_retries: Number of retries for failed requests.
-        reasoning_effort: Level of reasoning effort for the model.
-            Options: "none", "low", "medium", "high".
-        verbosity: Level of verbosity in model responses.
-            Options: "low", "medium", "high".
-        text_format: Format of the text output.
-            Options: "text", "json_object", "json_schema".
-        store: Whether to store model responses with OpenAI.
-        model_kwargs: Additional model parameters.
     """
 
     model: str = DEFAULT_OPENAI_MODEL
+    """The OpenAI model name to use."""
+
     temperature: float | None = None
+    """Sampling temperature for the model."""
+
     api_key: str | None = None
+    """OpenAI API key."""
+
     organization: str | None = None
+    """OpenAI organization ID."""
+
     project: str | None = None
+    """OpenAI project ID."""
+
     base_url: str | None = None
+    """Custom base URL for OpenAI API."""
+
     max_output_tokens: int | None = None
+    """Maximum number of tokens in the output."""
+
     timeout: float | None = DEFAULT_TIMEOUT
+    """Request timeout in seconds."""
+
     max_retries: int = DEFAULT_MAX_RETRIES
+    """Number of retries for failed requests."""
+
     reasoning_effort: ReasoningEffort | None = None
+    """Level of reasoning effort for the model. 
+    
+    Options: `none`, `low`, `medium`, `high`.
+    """
+
     verbosity: Verbosity | None = None
+    """Level of verbosity in model responses. 
+    
+    Options: `low`, `medium`, `high`.
+    """
+
     text_format: TextFormat | None = None
+    """Format of the text output. 
+    
+    Options: `text`, `json_object`, `json_schema`.
+    """
+
     store: bool = False
+    """Whether to store model responses with OpenAI."""
+
     model_kwargs: dict[str, Any] = Field(default_factory=dict)
+    """Additional model parameters."""
 
     _client: OpenAI = PrivateAttr()
+    """Synchronous OpenAI client."""
+
+    _async_client: AsyncOpenAI = PrivateAttr()
+    """Asynchronous OpenAI client."""
+
     _tools: list[Tool] | None = PrivateAttr(default=None)
+    """List of bound tools."""
+
     _tool_choice: str | None = PrivateAttr(default=None)
+    """Tool selection strategy."""
+
     _parallel_tool_calls: bool | None = PrivateAttr(default=None)
+    """Whether to allow parallel tool calls."""
 
     @model_validator(mode="after")
     def _validate_temperature(self) -> ChatOpenAI:
@@ -106,22 +133,40 @@ class ChatOpenAI(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def _initialize_client(self) -> ChatOpenAI:
-        """Initialize the OpenAI client."""
-        self._client = OpenAI(
-            api_key=self.api_key,
-            base_url=self.base_url,
-            organization=self.organization,
-            project=self.project,
-            timeout=self.timeout,
-            max_retries=self.max_retries,
-        )
+    def _init_client(self) -> ChatOpenAI:
+        """Initialize the OpenAI clients."""
+        client_kwargs = {
+            "api_key": self.api_key,
+            "base_url": self.base_url,
+            "organization": self.organization,
+            "project": self.project,
+            "timeout": self.timeout,
+            "max_retries": self.max_retries,
+        }
+        self._client = OpenAI(**client_kwargs)
+        self._async_client = AsyncOpenAI(**client_kwargs)
         return self
 
     @property
     def client(self) -> OpenAI:
-        """Access the OpenAI client."""
+        """Access the synchronous OpenAI client."""
         return self._client
+
+    @property
+    def async_client(self) -> AsyncOpenAI:
+        """Access the asynchronous OpenAI client."""
+        return self._async_client
+
+    @staticmethod
+    def _convert_to_openai_tools(tools: list[Tool]) -> list[dict[str, Any]] | None:
+        """Convert all registered tools to the OpenAI tool schema format.
+
+        Returns:
+            List[Dict[str, Any]]: A list of tools in OpenAI-compatible dictionary format.
+        """
+        if not tools:
+            return None
+        return [tool.convert_to_openai_tool() for tool in tools]
 
     def bind_tools(
         self,
@@ -145,29 +190,18 @@ class ChatOpenAI(BaseModel):
         self._parallel_tool_calls = parallel_tool_calls
         return self
 
-    def chat(
+    def _prepare_request_params(
         self,
         *,
         messages: PromptTemplate | list[dict[str, Any]],
-        stream: bool = False,
-        tools: list[Tool] | None = None,
-        tool_choice: str | None = None,
-        parallel_tool_calls: bool | None = None,
-    ) -> Response | Iterator[ResponseStreamEvent]:
-        """Call the model with the given messages.
-
-        Args:
-            messages: PromptTemplate or list of messages in OpenAI format.
-            stream: Whether to stream the output.
-            tools: Optional list of Tool instances.
-            tool_choice: Optional tool selection strategy.
-            parallel_tool_calls: Whether to allow parallel tool calls.
-
-        Returns:
-            Response | Iterator[ResponseStreamEvent]: The OpenAI Responses API response object (or stream).
-        """
+        stream: bool,
+        tools: list[Tool] | None,
+        tool_choice: str | None,
+        parallel_tool_calls: bool | None,
+    ) -> dict[str, Any]:
+        """Prepare common request parameters for sync and async calls."""
         if isinstance(messages, PromptTemplate):
-            input_ = messages.to_openai_input()
+            input_ = messages.convert_to_openai_input()
         else:
             input_ = messages
 
@@ -205,8 +239,67 @@ class ChatOpenAI(BaseModel):
                 if parallel_tool_calls is not None
                 else self._parallel_tool_calls
             )
+        return params
 
+    def chat(
+        self,
+        *,
+        messages: PromptTemplate | list[dict[str, Any]],
+        stream: bool = False,
+        tools: list[Tool] | None = None,
+        tool_choice: str | None = None,
+        parallel_tool_calls: bool | None = None,
+    ) -> Response | Iterator[ResponseStreamEvent]:
+        """Call the model synchronously.
+
+        Args:
+            messages: PromptTemplate or list of messages in OpenAI format.
+            stream: Whether to stream the output.
+            tools: Optional list of Tool instances.
+            tool_choice: Optional tool selection strategy.
+            parallel_tool_calls: Whether to allow parallel tool calls.
+
+        Returns:
+            Response | Iterator[ResponseStreamEvent]: The OpenAI response or stream.
+        """
+        params = self._prepare_request_params(
+            messages=messages,
+            stream=stream,
+            tools=tools,
+            tool_choice=tool_choice,
+            parallel_tool_calls=parallel_tool_calls,
+        )
         return self.client.responses.create(**params)
+
+    async def achat(
+        self,
+        *,
+        messages: PromptTemplate | list[dict[str, Any]],
+        stream: bool = False,
+        tools: list[Tool] | None = None,
+        tool_choice: str | None = None,
+        parallel_tool_calls: bool | None = None,
+    ) -> Response | AsyncIterator[ResponseStreamEvent]:
+        """Call the model asynchronously.
+
+        Args:
+            messages: PromptTemplate or list of messages in OpenAI format.
+            stream: Whether to stream the output.
+            tools: Optional list of Tool instances.
+            tool_choice: Optional tool selection strategy.
+            parallel_tool_calls: Whether to allow parallel tool calls.
+
+        Returns:
+            Response | AsyncIterator[ResponseStreamEvent]: The OpenAI response or async stream.
+        """
+        params = self._prepare_request_params(
+            messages=messages,
+            stream=stream,
+            tools=tools,
+            tool_choice=tool_choice,
+            parallel_tool_calls=parallel_tool_calls,
+        )
+        return await self.async_client.responses.create(**params)
 
     def invoke(self, messages: list[dict[str, Any]] | PromptTemplate) -> Response:
         """Synchronously call the model.
@@ -219,30 +312,67 @@ class ChatOpenAI(BaseModel):
         """
         return self.chat(messages=messages, stream=False)
 
+    async def ainvoke(
+        self, messages: list[dict[str, Any]] | PromptTemplate
+    ) -> Response:
+        """Asynchronously call the model.
+
+        Args:
+            messages: PromptTemplate or list of messages in OpenAI format.
+
+        Returns:
+            Response: The OpenAI Responses API response object.
+        """
+        return await self.achat(messages=messages, stream=False)
+
     def stream(
         self,
-        *,
         messages: list[dict[str, Any]] | PromptTemplate,
     ) -> Iterator[ResponseStreamEvent]:
-        """Stream the model response.
+        """Stream the model response synchronously.
 
         Args:
             messages: PromptTemplate or list of messages in OpenAI format.
 
         Yields:
-            ResponseStreamEvent: Streamed response events from the OpenAI Responses API.
+            ResponseStreamEvent: Streamed response events.
         """
         response = self.chat(messages=messages, stream=True)
         for event in response:
             yield event
 
-    @staticmethod
-    def _convert_to_openai_tools(tools: list[Tool]) -> list[dict[str, Any]] | None:
-        """Convert all registered tools to the OpenAI tool schema format.
+    async def astream(
+        self,
+        messages: list[dict[str, Any]] | PromptTemplate,
+    ) -> AsyncIterator[ResponseStreamEvent]:
+        """Stream the model response asynchronously.
 
-        Returns:
-            List[Dict[str, Any]]: A list of tools in OpenAI-compatible dictionary format.
+        Args:
+            messages: PromptTemplate or list of messages in OpenAI format.
+
+        Yields:
+            ResponseStreamEvent: Streamed response events.
         """
-        if not tools:
-            return None
-        return [tool.to_openai_tool() for tool in tools]
+        response = await self.achat(messages=messages, stream=True)
+        async for event in response:
+            yield event
+
+    def close(self) -> None:
+        """Close the synchronous client."""
+        self._client.close()
+
+    async def aclose(self) -> None:
+        """Close the asynchronous client."""
+        await self._async_client.close()
+
+    def __enter__(self) -> ChatOpenAI:
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
+    async def __aenter__(self) -> ChatOpenAI:
+        return self
+
+    async def __aexit__(self, *exc) -> None:
+        await self.aclose()

@@ -17,17 +17,17 @@ class TestPromptTemplates(unittest.TestCase):
         """Verify that invalid message combinations raise errors."""
 
         # 1. Valid message
-        msg = PromptMessage(role="user", content_type="input_text", text="Hello")
-        openai_msg = msg.to_openai_message()
+        msg = PromptMessage(role="user", content_type="text", text="Hello")
+        openai_msg = msg.convert_to_openai_message()
         self.assertEqual(openai_msg["role"], "user")
 
         # 2. Invalid: Missing role for text input
         with self.assertRaises(ValueError):
-            PromptMessage(content_type="input_text", text="Hello").to_openai_message()
+            PromptMessage(content_type="text", text="Hello").convert_to_openai_message()
 
         # 3. Invalid: Missing text content for text input
         with self.assertRaises(ValueError):
-            PromptMessage(role="user", content_type="input_text").to_openai_message()
+            PromptMessage(role="user", content_type="text").convert_to_openai_message()
 
     def test_template_builder_methods(self):
         """Verify helper methods for building a template."""
@@ -35,7 +35,7 @@ class TestPromptTemplates(unittest.TestCase):
         template.add_system("System prompt")
         template.add_user("User prompt")
 
-        messages = template.to_openai_input()
+        messages = template.convert_to_openai_input()
         self.assertEqual(len(messages), 2)
 
         # 1. Check System
@@ -57,7 +57,7 @@ class TestPromptTemplates(unittest.TestCase):
         template.add_tool_call(name="test_tool", arguments="{}", call_id="123")
         template.add_tool_output(call_id="123", output="result")
 
-        messages = template.to_openai_input()
+        messages = template.convert_to_openai_input()
         self.assertEqual(len(messages), 2)
 
         # Check that we have two messages representing the call cycle
@@ -72,10 +72,13 @@ class TestPromptTemplates(unittest.TestCase):
         self.assertTrue(output_msg)
 
         # If implementation uses 'type' key (internal) or 'role' (OpenAI)
+        # Call message should be function type
         if "type" in call_msg:
-            self.assertIn("function_call", call_msg["type"])
-        if "type" in output_msg:
-            self.assertIn("function_call_output", output_msg["type"])
+            self.assertEqual(call_msg["type"], "function_call")
+
+        # Output message uses role='tool'
+        if "role" in output_msg:
+            self.assertEqual(output_msg["role"], "tool")
 
 
 if __name__ == "__main__":
