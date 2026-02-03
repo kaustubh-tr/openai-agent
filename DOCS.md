@@ -183,7 +183,8 @@ LiteRun intelligently handles execution mode mismatches:
     # 1. Async Tool (Native Async) - Example only, validate URLs in production
     async def fetch(url: str):
         # Note: In production, validate and sanitize URLs to prevent SSRF
-        ...
+        async with httpx.AsyncClient() as client:
+            return await client.get(url)  # Add URL validation before use
 
     tool = Tool(name="fetch", coroutine=fetch, description="Fetch URL")
     ```
@@ -285,8 +286,8 @@ def query_database(query: str, ctx: ToolRuntime) -> str:
     user_id = getattr(ctx, "user_id")
     db_conn = getattr(ctx, "db_connection")
     
-    # Placeholder - implement proper query validation/parameterization
-    ...
+    # Use parameterized queries in production to prevent SQL injection
+    return db_conn.execute(query, user_id=user_id)
 
 # Initialize tool (schema will ONLY show 'query')
 tool = Tool(name="query_db", func=query_database, ...)
