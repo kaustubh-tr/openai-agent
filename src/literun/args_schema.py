@@ -7,24 +7,24 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class ArgsSchema(BaseModel):
-    """Represents an argument for a tool.
-
-    Args:
-        name: The name of the argument.
-        type: The Python type of the argument (e.g., str, int, float, bool).
-        description: A description of the argument for documentation purposes.
-        enum: Optional list of allowed values for the argument.
-    """
+    """Represents an argument for a tool."""
 
     model_config = ConfigDict(populate_by_name=True)
 
     name: str
+    """The name of the argument."""
+    
     type_: type[Any] = Field(alias="type")
+    """The Python type of the argument."""
+    
     description: str = ""
+    """A description of the argument."""
+    
     enum: list[Any] | None = None
+    """List of allowed values for the argument."""
 
     # JSON schema representation
-    def to_json_schema(self) -> dict[str, Any]:
+    def convert_to_json_schema(self) -> dict[str, Any]:
         """Convert the argument to a JSON Schema representation.
 
         Returns:
